@@ -300,14 +300,38 @@ class HumanitecExporter:
         secret_stores = await self.humanitec_client.get_secret_stores()
 
         def create_secret_store_entity(secret_store):
+            # Determine the secret store type based on which configuration is present
+            secret_store_type = "unknown"
+            if secret_store.get("awssm") is not None:
+                secret_store_type = "AWS Secrets Manager"
+            elif secret_store.get("azurekv") is not None:
+                secret_store_type = "Azure Key Vault"
+            elif secret_store.get("gcpsm") is not None:
+                secret_store_type = "Google Cloud Secret Manager"
+            elif secret_store.get("humanitec") is not None:
+                secret_store_type = "Humanitec"
+            elif secret_store.get("vault") is not None:
+                secret_store_type = "HashiCorp Vault"
+            
+            # Create a title based on the type and ID
+            title = f"{secret_store_type} - {secret_store['id']}"
+            if secret_store.get("primary"):
+                title = f"{title} (Primary)"
+            
             return {
                 "identifier": secret_store["id"],
-                "title": self.remove_symbols_and_title_case(secret_store["name"]),
+                "title": title,
                 "properties": {
-                    "type": secret_store["type"],
+                    "primary": secret_store.get("primary", False),
                     "createdAt": secret_store.get("created_at"),
+                    "createdBy": secret_store.get("created_by"),
                     "updatedAt": secret_store.get("updated_at"),
-                    "description": secret_store.get("description"),
+                    "updatedBy": secret_store.get("updated_by"),
+                    "awssm": secret_store.get("awssm"),
+                    "azurekv": secret_store.get("azurekv"),
+                    "gcpsm": secret_store.get("gcpsm"),
+                    "humanitec": secret_store.get("humanitec"),
+                    "vault": secret_store.get("vault"),
                 },
                 "relations": {},
             }
@@ -328,26 +352,39 @@ class HumanitecExporter:
         applications = await self.humanitec_client.get_all_applications()
 
         def create_shared_value_entity(shared_value, application, environment=None):
-            identifier = f"{application['id']}/{shared_value['key']}"
+            # Create identifier based on source and context
             if environment:
                 identifier = f"{application['id']}/{environment['id']}/{shared_value['key']}"
+            else:
+                identifier = f"{application['id']}/{shared_value['key']}"
             
-            entity = {
+            
+            # Build relations
+            relations = {BLUEPRINT.APPLICATION: application["id"]}
+            
+            if environment:
+                relations[BLUEPRINT.ENVIRONMENT] = f"{application['id']}/{environment['id']}"
+            
+            # Add secret store relation if present
+            if shared_value.get("secret_store_id"):
+                relations[BLUEPRINT.SECRET_STORE] = shared_value["secret_store_id"]
+            
+            return {
                 "identifier": identifier,
-                "title": self.remove_symbols_and_title_case(shared_value["key"]),
+                "title": shared_value["key"],
                 "properties": {
-                    "value": shared_value.get("value"),
+                    "description": shared_value.get("description"),
                     "isSecret": shared_value.get("is_secret", False),
+                    "key": shared_value.get("key"),
+                    "secretKey": shared_value.get("secret_key"),
+                    "secretVersion": shared_value.get("secret_version"),
+                    "source": shared_value.get("source"),
+                    "value": shared_value.get("value"),
                     "createdAt": shared_value.get("created_at"),
                     "updatedAt": shared_value.get("updated_at"),
                 },
-                "relations": {BLUEPRINT.APPLICATION: application["id"]},
+                "relations": relations,
             }
-            
-            if environment:
-                entity["relations"][BLUEPRINT.ENVIRONMENT] = f"{application['id']}/{environment['id']}"
-            
-            return entity
 
         # Sync app-level shared values
         app_level_tasks = []
@@ -443,18 +480,37 @@ class HumanitecExporter:
     async def sync_pipelines(self) -> None:
         logger.info(f"Syncing entities for blueprint {BLUEPRINT.PIPELINE}")
         pipelines = await self.humanitec_client.get_pipelines()
+        
+        # Get cached applications to map pipeline to app names
+        applications = await self.humanitec_client.get_all_applications()
+        app_map = {app["id"]: app for app in applications}
 
         def create_pipeline_entity(pipeline):
+            app_id = pipeline.get("app_id")
+            app_name = app_map.get(app_id, {}).get("name", "Unknown App")
+            
+            # Create identifier that includes app context
+            identifier = f"{app_id}/{pipeline['id']}"
+            
+            # Create title that includes app name and pipeline name
+            pipeline_name = pipeline.get("name", pipeline["id"])
+            title = f"{app_name} - {pipeline_name}"
+            
             return {
-                "identifier": pipeline["id"],
-                "title": self.remove_symbols_and_title_case(pipeline.get("name", pipeline["id"])),
+                "identifier": identifier,
+                "title": title,
                 "properties": {
-                    "type": pipeline.get("type"),
+                    "etag": pipeline.get("etag"),
+                    "name": pipeline.get("name"),
+                    "status": pipeline.get("status"),
+                    "version": pipeline.get("version"),
                     "createdAt": pipeline.get("created_at"),
-                    "updatedAt": pipeline.get("updated_at"),
-                    "description": pipeline.get("description"),
+                    "triggerTypes": pipeline.get("trigger_types", []),
+                    "metadata": pipeline.get("metadata", {}),
                 },
-                "relations": {},
+                "relations": {
+                    BLUEPRINT.APPLICATION: app_id
+                } if app_id else {},
             }
 
         tasks = [
