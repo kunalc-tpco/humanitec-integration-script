@@ -2,7 +2,7 @@
   {
     "identifier": "humanitecApplication",
     "description": "Humanitec Application",
-    "title": "Application",
+    "title": "Humanitec Application",
     "icon": "Apps",
     "schema": {
       "properties": {
@@ -21,7 +21,7 @@
   },
   {
     "identifier": "humanitecEnvironment",
-    "title": "Environment",
+    "title": "Humanitec Environment",
     "icon": "Environment",
     "schema": {
       "properties": {
@@ -67,134 +67,501 @@
       }
     }
   },
-    {
-      "identifier": "humanitecWorkload",
-      "title": "Workload",
-      "icon": "Cluster",
-      "schema": {
-        "properties": {
-          "class": {
-            "title": "Class",
-            "description": "The class of the workload",
-            "type": "string",
-            "icon": "DefaultProperty"
-          },
-          "driverType": {
-            "title": "Driver Type",
-            "description": "The driver type of the workload",
-            "type": "string",
-            "icon": "DefaultProperty"
-          },
-          "definitionId": {
-            "title": "Definition ID",
-            "description": "The definition ID of the workload",
-            "type": "string",
-            "icon": "DefaultProperty"
-          },
-          "definitionVersionId": {
-            "title": "Definition Version ID",
-            "description": "The definition version ID of the workload",
-            "type": "string",
-            "icon": "DefaultProperty"
-          },
-          "status": {
-            "title": "Status",
-            "description": "The status of the workload",
-            "type": "string",
-            "icon": "DefaultProperty"
-          },
-          "updatedAt": {
-            "title": "Update Date",
-            "description": "The date and time when the workload was last updated",
-            "type": "string",
-            "format": "date-time",
-            "icon": "DefaultProperty"
-          }
+  {
+    "identifier": "humanitecWorkload",
+    "title": "Humanitec Workload",
+    "icon": "Cluster",
+    "schema": {
+      "properties": {
+        "class": {
+          "title": "Class",
+          "description": "The class of the workload",
+          "type": "string",
+          "icon": "DefaultProperty"
         },
-        "required": []
-      },
-      "mirrorProperties": {},
-      "calculationProperties": {},
-      "aggregationProperties": {},
-      "relations": {
-        "humanitecEnvironment": {
-          "title": "Environment",
-          "target": "humanitecEnvironment",
-          "required": false,
-          "many": false
+        "driverType": {
+          "title": "Driver Type",
+          "description": "The driver type of the workload",
+          "type": "string",
+          "icon": "DefaultProperty"
+        },
+        "definitionId": {
+          "title": "Definition ID",
+          "description": "The definition ID of the workload",
+          "type": "string",
+          "icon": "DefaultProperty"
+        },
+        "definitionVersionId": {
+          "title": "Definition Version ID",
+          "description": "The definition version ID of the workload",
+          "type": "string",
+          "icon": "DefaultProperty"
+        },
+        "status": {
+          "title": "Status",
+          "description": "The status of the workload",
+          "type": "string",
+          "icon": "DefaultProperty"
+        },
+        "updatedAt": {
+          "title": "Update Date",
+          "description": "The date and time when the workload was last updated",
+          "type": "string",
+          "format": "date-time",
+          "icon": "DefaultProperty"
         }
-      }
+      },
+      "required": []
     },
-    {
-      "identifier": "humanitecResource",
-      "title": "Active Resource",
-      "icon": "Microservice",
-      "schema": {
-        "properties": {
-          "type": {
-            "title": "Type",
-            "description": "The type of the resource",
-            "type": "string",
-            "icon": "DefaultProperty"
-          },
-          "class": {
-            "title": "Class",
-            "description": "The class of the resource",
-            "type": "string",
-            "icon": "DefaultProperty"
-          },
-          "resource": {
-            "title": "Resource",
-            "description": "The resource",
-            "type": "object",
-            "icon": "DefaultProperty"
-          },
-          "resourceSchema": {
-            "title": "Resource Schema",
-            "description": "The schema of the resource",
-            "type": "object",
-            "icon": "DefaultProperty"
-          }
-        },
-        "required": []
-      },
-      "mirrorProperties": {},
-      "calculationProperties": {},
-      "aggregationProperties": {},
-      "relations": {
-        "humanitecWorkload": {
-          "title": "Humanitec Workload",
-          "target": "humanitecWorkload",
-          "required": false,
-          "many": false
-        }
-      }
-    },
-    {
-      "identifier": "humanitecResourceGraph",
-      "description": "Humanitec Resource Graph",
-      "title": "Resource Graph",
-      "icon": "Microservice",
-      "schema": {
-        "properties": {},
-        "required": []
-      },
-      "mirrorProperties": {},
-      "calculationProperties": {},
-      "aggregationProperties": {},
-      "relations": {
-        "humanitecEnvironment": {
-          "title": "Environment",
-          "target": "humanitecEnvironment",
-          "required": false,
-          "many": false
-        },
-        "humanitecResourceGraph": {
-          "title": "Depends On",
-          "target": "humanitecResourceGraph",
-          "required": false,
-          "many": true
-        }
+    "mirrorProperties": {},
+    "calculationProperties": {},
+    "aggregationProperties": {},
+    "relations": {
+      "humanitecEnvironment": {
+        "title": "Environment",
+        "target": "humanitecEnvironment",
+        "required": false,
+        "many": false
       }
     }
-    ]
+  },
+  {
+    "identifier": "humanitecResource",
+    "title": "Humanitec Active Resource",
+    "icon": "Microservice",
+    "schema": {
+      "properties": {
+        "type": {
+          "title": "Type",
+          "description": "The type of the resource",
+          "type": "string",
+          "icon": "DefaultProperty"
+        },
+        "class": {
+          "title": "Class",
+          "description": "The class of the resource",
+          "type": "string",
+          "icon": "DefaultProperty"
+        },
+        "resource": {
+          "title": "Resource",
+          "description": "The resource",
+          "type": "object",
+          "icon": "DefaultProperty"
+        },
+        "resourceSchema": {
+          "title": "Resource Schema",
+          "description": "The schema of the resource",
+          "type": "object",
+          "icon": "DefaultProperty"
+        }
+      },
+      "required": []
+    },
+    "mirrorProperties": {},
+    "calculationProperties": {},
+    "aggregationProperties": {},
+    "relations": {
+      "humanitecWorkload": {
+        "title": "Humanitec Workload",
+        "target": "humanitecWorkload",
+        "required": false,
+        "many": false
+      }
+    }
+  },
+  {
+    "identifier": "humanitecResourceGraph",
+    "description": "Humanitec Resource Graph",
+    "title": "Humanitec Resource Graph",
+    "icon": "Microservice",
+    "schema": {
+      "properties": {},
+      "required": []
+    },
+    "mirrorProperties": {},
+    "calculationProperties": {},
+    "aggregationProperties": {},
+    "relations": {
+      "humanitecEnvironment": {
+        "title": "Environment",
+        "target": "humanitecEnvironment",
+        "required": false,
+        "many": false
+      },
+      "humanitecResourceGraph": {
+        "title": "Depends On",
+        "target": "humanitecResourceGraph",
+        "required": false,
+        "many": true
+      }
+    }
+  },
+  {
+    "identifier": "humanitecSecretStore",
+    "title": "Humanitec Secret Store",
+    "icon": "Lock",
+    "schema": {
+      "properties": {
+        "primary": {
+          "title": "Primary",
+          "description": "Whether this is the primary secret store",
+          "type": "boolean",
+          "icon": "DefaultProperty"
+        },
+        "createdAt": {
+          "title": "Created At",
+          "description": "The date and time when the secret store was created",
+          "type": "string",
+          "format": "date-time",
+          "icon": "DefaultProperty"
+        },
+        "createdBy": {
+          "title": "Created By",
+          "description": "The user who created the secret store",
+          "type": "string",
+          "icon": "DefaultProperty"
+        },
+        "updatedAt": {
+          "title": "Updated At",
+          "description": "The date and time when the secret store was last updated",
+          "type": "string",
+          "format": "date-time",
+          "icon": "DefaultProperty"
+        },
+        "updatedBy": {
+          "title": "Updated By",
+          "description": "The user who last updated the secret store",
+          "type": "string",
+          "icon": "DefaultProperty"
+        },
+        "awssm": {
+          "title": "AWS Secrets Manager",
+          "description": "AWS Secrets Manager configuration",
+          "type": "object",
+          "icon": "DefaultProperty"
+        },
+        "azurekv": {
+          "title": "Azure Key Vault",
+          "description": "Azure Key Vault configuration",
+          "type": "object",
+          "icon": "DefaultProperty"
+        },
+        "gcpsm": {
+          "title": "Google Cloud Secret Manager",
+          "description": "Google Cloud Secret Manager configuration",
+          "type": "object",
+          "icon": "DefaultProperty"
+        },
+        "humanitec": {
+          "title": "Humanitec",
+          "description": "Humanitec secret store configuration",
+          "type": "object",
+          "icon": "DefaultProperty"
+        },
+        "vault": {
+          "title": "Vault",
+          "description": "HashiCorp Vault configuration",
+          "type": "object",
+          "icon": "DefaultProperty"
+        }
+      },
+      "required": []
+    },
+    "mirrorProperties": {},
+    "calculationProperties": {},
+    "aggregationProperties": {},
+    "relations": {}
+  },
+  {
+    "identifier": "humanitecSharedValue",
+    "title": "Humanitec Shared Value",
+    "icon": "Settings",
+    "schema": {
+      "properties": {
+        "description": {
+          "title": "Description",
+          "description": "A human friendly description of what the Shared Value is",
+          "type": "string",
+          "icon": "DefaultProperty"
+        },
+        "isSecret": {
+          "title": "Is Secret",
+          "description": "Specified that the Shared Value contains a secret",
+          "type": "boolean",
+          "icon": "DefaultProperty"
+        },
+        "secretKey": {
+          "title": "Secret Key",
+          "description": "Location of the secret value in the secret store",
+          "type": "string",
+          "icon": "DefaultProperty"
+        },
+        "secretVersion": {
+          "title": "Secret Version",
+          "description": "Version of the current secret value as returned by the secret store",
+          "type": "string",
+          "icon": "DefaultProperty"
+        },
+        "source": {
+          "title": "Source",
+          "description": "Source of the value, 'app' for app level, 'env' for app env level",
+          "type": "string",
+          "icon": "DefaultProperty"
+        },
+        "value": {
+          "title": "Value",
+          "description": "The value that will be stored (will be always empty for secrets)",
+          "type": "string",
+          "icon": "DefaultProperty"
+        },
+        "createdAt": {
+          "title": "Created At",
+          "description": "The date and time when the shared value was created",
+          "type": "string",
+          "format": "date-time",
+          "icon": "DefaultProperty"
+        },
+        "updatedAt": {
+          "title": "Updated At",
+          "description": "The date and time when the shared value was last updated",
+          "type": "string",
+          "format": "date-time",
+          "icon": "DefaultProperty"
+        }
+      },
+      "required": []
+    },
+    "mirrorProperties": {},
+    "calculationProperties": {},
+    "aggregationProperties": {},
+    "relations": {
+      "humanitecApplication": {
+        "title": "Application",
+        "target": "humanitecApplication",
+        "required": false,
+        "many": false
+      },
+      "humanitecEnvironment": {
+        "title": "Environment",
+        "target": "humanitecEnvironment",
+        "required": false,
+        "many": false
+      },
+      "humanitecSecretStore": {
+        "title": "Secret Store",
+        "target": "humanitecSecretStore",
+        "required": false,
+        "many": false
+      }
+    }
+  },
+  {
+    "identifier": "humanitecValueSetVersion",
+    "title": "Humanitec Value Set Version",
+    "icon": "Version",
+    "schema": {
+      "properties": {
+        "version": {
+          "title": "Version",
+          "description": "The version number",
+          "type": "string",
+          "icon": "DefaultProperty"
+        },
+        "createdAt": {
+          "title": "Created At",
+          "description": "The date and time when the value set version was created",
+          "type": "string",
+          "format": "date-time",
+          "icon": "DefaultProperty"
+        },
+        "createdBy": {
+          "title": "Created By",
+          "description": "The user who created the value set version",
+          "type": "string",
+          "icon": "DefaultProperty"
+        },
+        "comment": {
+          "title": "Comment",
+          "description": "Comment for the value set version",
+          "type": "string",
+          "icon": "DefaultProperty"
+        }
+      },
+      "required": []
+    },
+    "mirrorProperties": {},
+    "calculationProperties": {},
+    "aggregationProperties": {},
+    "relations": {
+      "humanitecApplication": {
+        "title": "Application",
+        "target": "humanitecApplication",
+        "required": false,
+        "many": false
+      }
+    }
+  },
+  {
+    "identifier": "humanitecDeploymentSet",
+    "title": "Humanitec Deployment Set",
+    "icon": "Deployment",
+    "schema": {
+      "properties": {
+        "version": {
+          "title": "Version",
+          "description": "The version of the deployment set",
+          "type": "string",
+          "icon": "DefaultProperty"
+        },
+        "createdAt": {
+          "title": "Created At",
+          "description": "The date and time when the deployment set was created",
+          "type": "string",
+          "format": "date-time",
+          "icon": "DefaultProperty"
+        },
+        "createdBy": {
+          "title": "Created By",
+          "description": "The user who created the deployment set",
+          "type": "string",
+          "icon": "DefaultProperty"
+        },
+        "comment": {
+          "title": "Comment",
+          "description": "Comment for the deployment set",
+          "type": "string",
+          "icon": "DefaultProperty"
+        }
+      },
+      "required": []
+    },
+    "mirrorProperties": {},
+    "calculationProperties": {},
+    "aggregationProperties": {},
+    "relations": {
+      "humanitecApplication": {
+        "title": "Application",
+        "target": "humanitecApplication",
+        "required": false,
+        "many": false
+      }
+    }
+  },
+  {
+    "identifier": "humanitecPipeline",
+    "title": "Humanitec Pipeline",
+    "icon": "Pipeline",
+    "schema": {
+      "properties": {
+        "etag": {
+          "title": "ETag",
+          "description": "Entity tag for the pipeline",
+          "type": "string",
+          "icon": "DefaultProperty"
+        },
+        "name": {
+          "title": "Name",
+          "description": "The name of the pipeline",
+          "type": "string",
+          "icon": "DefaultProperty"
+        },
+        "status": {
+          "title": "Status",
+          "description": "The status of the pipeline",
+          "type": "string",
+          "icon": "DefaultProperty"
+        },
+        "version": {
+          "title": "Version",
+          "description": "The version of the pipeline",
+          "type": "string",
+          "icon": "DefaultProperty"
+        },
+        "createdAt": {
+          "title": "Created At",
+          "description": "The date and time when the pipeline was created",
+          "type": "string",
+          "format": "date-time",
+          "icon": "DefaultProperty"
+        },
+        "triggerTypes": {
+          "title": "Trigger Types",
+          "description": "Types of triggers for the pipeline",
+          "type": "array",
+          "icon": "DefaultProperty"
+        },
+        "metadata": {
+          "title": "Metadata",
+          "description": "Additional metadata for the pipeline",
+          "type": "object",
+          "icon": "DefaultProperty"
+        }
+      },
+      "required": []
+    },
+    "mirrorProperties": {},
+    "calculationProperties": {},
+    "aggregationProperties": {},
+    "relations": {
+      "humanitecApplication": {
+        "title": "Application",
+        "target": "humanitecApplication",
+        "required": false,
+        "many": false
+      }
+    }
+  },
+  {
+    "identifier": "humanitecDeploymentDelta",
+    "title": "Humanitec Deployment Delta",
+    "icon": "Deployment",
+    "schema": {
+      "properties": {
+        "status": {
+          "title": "Status",
+          "description": "The status of the deployment delta",
+          "type": "string",
+          "icon": "DefaultProperty"
+        },
+        "createdAt": {
+          "title": "Created At",
+          "description": "The date and time when the deployment delta was created",
+          "type": "string",
+          "format": "date-time",
+          "icon": "DefaultProperty"
+        },
+        "createdBy": {
+          "title": "Created By",
+          "description": "The user who created the deployment delta",
+          "type": "string",
+          "icon": "DefaultProperty"
+        },
+        "comment": {
+          "title": "Comment",
+          "description": "Comment for the deployment delta",
+          "type": "string",
+          "icon": "DefaultProperty"
+        },
+        "environment": {
+          "title": "Environment",
+          "description": "The environment for the deployment delta",
+          "type": "string",
+          "icon": "DefaultProperty"
+        }
+      },
+      "required": []
+    },
+    "mirrorProperties": {},
+    "calculationProperties": {},
+    "aggregationProperties": {},
+    "relations": {
+      "humanitecApplication": {
+        "title": "Application",
+        "target": "humanitecApplication",
+        "required": false,
+        "many": false
+      }
+    }
+  }
+]

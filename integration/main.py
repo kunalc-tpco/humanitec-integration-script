@@ -17,6 +17,12 @@ class BLUEPRINT:
     WORKLOAD = "humanitecWorkload"
     RESOURCE_GRAPH = "humanitecResourceGraph"
     RESOURCE = "humanitecResource"
+    SECRET_STORE = "humanitecSecretStore"
+    SHARED_VALUE = "humanitecSharedValue"
+    VALUE_SET_VERSION = "humanitecValueSetVersion"
+    DEPLOYMENT_SET = "humanitecDeploymentSet"
+    PIPELINE = "humanitecPipeline"
+    DEPLOYMENT_DELTA = "humanitecDeploymentDelta"
 
 
 class HumanitecExporter:
@@ -113,7 +119,7 @@ class HumanitecExporter:
     async def sync_workloads(self):
         logger.info(f"Syncing entities for blueprint {BLUEPRINT.WORKLOAD}")
 
-        def create_workload_entity(resource, application):
+        def create_workload_entity(resource, application, environment):
             identifier = f"{application['id']}/{environment['id']}/{resource['res_id'].replace('modules.', '')}"
             return {
                 "identifier": identifier,
@@ -147,7 +153,7 @@ class HumanitecExporter:
                 tasks = [
                     self.port_client.upsert_entity(
                         blueprint_id=BLUEPRINT.WORKLOAD,
-                        entity_object=create_workload_entity(resource, application),
+                        entity_object=create_workload_entity(resource, application, environment),
                     )
                     for resource in resource_group.get("modules", [])
                     if resource and resource["type"] == "workload"
@@ -289,12 +295,279 @@ class HumanitecExporter:
 
         logger.info(f"Finished syncing entities for blueprint {BLUEPRINT.RESOURCE}")
 
+    async def sync_secret_stores(self) -> None:
+        logger.info(f"Syncing entities for blueprint {BLUEPRINT.SECRET_STORE}")
+        secret_stores = await self.humanitec_client.get_secret_stores()
+
+        def create_secret_store_entity(secret_store):
+            # Determine the secret store type based on which configuration is present
+            secret_store_type = "unknown"
+            if secret_store.get("awssm") is not None:
+                secret_store_type = "AWS Secrets Manager"
+            elif secret_store.get("azurekv") is not None:
+                secret_store_type = "Azure Key Vault"
+            elif secret_store.get("gcpsm") is not None:
+                secret_store_type = "Google Cloud Secret Manager"
+            elif secret_store.get("humanitec") is not None:
+                secret_store_type = "Humanitec"
+            elif secret_store.get("vault") is not None:
+                secret_store_type = "HashiCorp Vault"
+            
+            # Create a title based on the type and ID
+            title = f"{secret_store_type} - {secret_store['id']}"
+            if secret_store.get("primary"):
+                title = f"{title} (Primary)"
+            
+            return {
+                "identifier": secret_store["id"],
+                "title": title,
+                "properties": {
+                    "primary": secret_store.get("primary", False),
+                    "createdAt": secret_store.get("created_at"),
+                    "createdBy": secret_store.get("created_by"),
+                    "updatedAt": secret_store.get("updated_at"),
+                    "updatedBy": secret_store.get("updated_by"),
+                    "awssm": secret_store.get("awssm"),
+                    "azurekv": secret_store.get("azurekv"),
+                    "gcpsm": secret_store.get("gcpsm"),
+                    "humanitec": secret_store.get("humanitec"),
+                    "vault": secret_store.get("vault"),
+                },
+                "relations": {},
+            }
+
+        tasks = [
+            self.port_client.upsert_entity(
+                blueprint_id=BLUEPRINT.SECRET_STORE,
+                entity_object=create_secret_store_entity(secret_store),
+            )
+            for secret_store in secret_stores
+        ]
+
+        await asyncio.gather(*tasks)
+        logger.info(f"Finished syncing entities for blueprint {BLUEPRINT.SECRET_STORE}")
+
+    async def sync_shared_values(self) -> None:
+        logger.info(f"Syncing entities for blueprint {BLUEPRINT.SHARED_VALUE}")
+        applications = await self.humanitec_client.get_all_applications()
+
+        def create_shared_value_entity(shared_value, application, environment=None):
+            # Create identifier based on source and context
+            if environment:
+                identifier = f"{application['id']}/{environment['id']}/{shared_value['key']}"
+            else:
+                identifier = f"{application['id']}/{shared_value['key']}"
+            
+            
+            # Build relations
+            relations = {BLUEPRINT.APPLICATION: application["id"]}
+            
+            if environment:
+                relations[BLUEPRINT.ENVIRONMENT] = f"{application['id']}/{environment['id']}"
+            
+            # Add secret store relation if present
+            if shared_value.get("secret_store_id"):
+                relations[BLUEPRINT.SECRET_STORE] = shared_value["secret_store_id"]
+            
+            return {
+                "identifier": identifier,
+                "title": shared_value["key"],
+                "properties": {
+                    "description": shared_value.get("description"),
+                    "isSecret": shared_value.get("is_secret", False),
+                    "key": shared_value.get("key"),
+                    "secretKey": shared_value.get("secret_key"),
+                    "secretVersion": shared_value.get("secret_version"),
+                    "source": shared_value.get("source"),
+                    "value": shared_value.get("value"),
+                    "createdAt": shared_value.get("created_at"),
+                    "updatedAt": shared_value.get("updated_at"),
+                },
+                "relations": relations,
+            }
+
+        # Sync app-level shared values
+        app_level_tasks = []
+        for application in applications:
+            shared_values = await self.humanitec_client.get_shared_values_app_level(application)
+            app_level_tasks.extend([
+                self.port_client.upsert_entity(
+                    blueprint_id=BLUEPRINT.SHARED_VALUE,
+                    entity_object=create_shared_value_entity(shared_value, application),
+                )
+                for shared_value in shared_values
+            ])
+
+        # Sync environment-level shared values
+        env_level_tasks = []
+        for application in applications:
+            environments = await self.humanitec_client.get_all_environments(application)
+            for environment in environments:
+                shared_values = await self.humanitec_client.get_shared_values(application, environment)
+                env_level_tasks.extend([
+                    self.port_client.upsert_entity(
+                        blueprint_id=BLUEPRINT.SHARED_VALUE,
+                        entity_object=create_shared_value_entity(shared_value, application, environment),
+                    )
+                    for shared_value in shared_values
+                ])
+
+        await asyncio.gather(*(app_level_tasks + env_level_tasks))
+        logger.info(f"Finished syncing entities for blueprint {BLUEPRINT.SHARED_VALUE}")
+
+    async def sync_value_set_versions(self) -> None:
+        logger.info(f"Syncing entities for blueprint {BLUEPRINT.VALUE_SET_VERSION}")
+        applications = await self.humanitec_client.get_all_applications()
+
+        def create_value_set_version_entity(value_set_version, application):
+            return {
+                "identifier": f"{application['id']}/{value_set_version['id']}",
+                "title": f"Value Set Version {value_set_version['id']}",
+                "properties": {
+                    "version": value_set_version.get("version"),
+                    "createdAt": value_set_version.get("created_at"),
+                    "createdBy": value_set_version.get("created_by"),
+                    "comment": value_set_version.get("comment"),
+                },
+                "relations": {BLUEPRINT.APPLICATION: application["id"]},
+            }
+
+        tasks = []
+        for application in applications:
+            value_set_versions = await self.humanitec_client.get_value_set_versions(application)
+            tasks.extend([
+                self.port_client.upsert_entity(
+                    blueprint_id=BLUEPRINT.VALUE_SET_VERSION,
+                    entity_object=create_value_set_version_entity(value_set_version, application),
+                )
+                for value_set_version in value_set_versions
+            ])
+
+        await asyncio.gather(*tasks)
+        logger.info(f"Finished syncing entities for blueprint {BLUEPRINT.VALUE_SET_VERSION}")
+
+    async def sync_deployment_sets(self) -> None:
+        logger.info(f"Syncing entities for blueprint {BLUEPRINT.DEPLOYMENT_SET}")
+        applications = await self.humanitec_client.get_all_applications()
+
+        def create_deployment_set_entity(deployment_set, application):
+            return {
+                "identifier": f"{application['id']}/{deployment_set['id']}",
+                "title": self.remove_symbols_and_title_case(deployment_set.get("name", deployment_set["id"])),
+                "properties": {
+                    "version": deployment_set.get("version"),
+                    "createdAt": deployment_set.get("created_at"),
+                    "createdBy": deployment_set.get("created_by"),
+                    "comment": deployment_set.get("comment"),
+                },
+                "relations": {BLUEPRINT.APPLICATION: application["id"]},
+            }
+
+        tasks = []
+        for application in applications:
+            deployment_sets = await self.humanitec_client.get_deployment_sets(application)
+            tasks.extend([
+                self.port_client.upsert_entity(
+                    blueprint_id=BLUEPRINT.DEPLOYMENT_SET,
+                    entity_object=create_deployment_set_entity(deployment_set, application),
+                )
+                for deployment_set in deployment_sets
+            ])
+
+        await asyncio.gather(*tasks)
+        logger.info(f"Finished syncing entities for blueprint {BLUEPRINT.DEPLOYMENT_SET}")
+
+    async def sync_pipelines(self) -> None:
+        logger.info(f"Syncing entities for blueprint {BLUEPRINT.PIPELINE}")
+        pipelines = await self.humanitec_client.get_pipelines()
+        
+        # Get cached applications to map pipeline to app names
+        applications = await self.humanitec_client.get_all_applications()
+        app_map = {app["id"]: app for app in applications}
+
+        def create_pipeline_entity(pipeline):
+            app_id = pipeline.get("app_id")
+            app_name = app_map.get(app_id, {}).get("name", "Unknown App")
+            
+            # Create identifier that includes app context
+            identifier = f"{app_id}/{pipeline['id']}"
+            
+            # Create title that includes app name and pipeline name
+            pipeline_name = pipeline.get("name", pipeline["id"])
+            title = f"{app_name} - {pipeline_name}"
+            
+            return {
+                "identifier": identifier,
+                "title": title,
+                "properties": {
+                    "etag": pipeline.get("etag"),
+                    "name": pipeline.get("name"),
+                    "status": pipeline.get("status"),
+                    "version": pipeline.get("version"),
+                    "createdAt": pipeline.get("created_at"),
+                    "triggerTypes": pipeline.get("trigger_types", []),
+                    "metadata": pipeline.get("metadata", {}),
+                },
+                "relations": {
+                    BLUEPRINT.APPLICATION: app_id
+                } if app_id else {},
+            }
+
+        tasks = [
+            self.port_client.upsert_entity(
+                blueprint_id=BLUEPRINT.PIPELINE,
+                entity_object=create_pipeline_entity(pipeline),
+            )
+            for pipeline in pipelines
+        ]
+
+        await asyncio.gather(*tasks)
+        logger.info(f"Finished syncing entities for blueprint {BLUEPRINT.PIPELINE}")
+
+    async def sync_deployment_deltas(self) -> None:
+        logger.info(f"Syncing entities for blueprint {BLUEPRINT.DEPLOYMENT_DELTA}")
+        applications = await self.humanitec_client.get_all_applications()
+
+        def create_deployment_delta_entity(deployment_delta, application):
+            return {
+                "identifier": f"{application['id']}/{deployment_delta['id']}",
+                "title": self.remove_symbols_and_title_case(deployment_delta.get("name", deployment_delta["id"])),
+                "properties": {
+                    "status": deployment_delta.get("status"),
+                    "createdAt": deployment_delta.get("created_at"),
+                    "createdBy": deployment_delta.get("created_by"),
+                    "comment": deployment_delta.get("comment"),
+                    "environment": deployment_delta.get("environment"),
+                },
+                "relations": {BLUEPRINT.APPLICATION: application["id"]},
+            }
+
+        tasks = []
+        for application in applications:
+            deployment_deltas = await self.humanitec_client.get_deployment_deltas(application)
+            tasks.extend([
+                self.port_client.upsert_entity(
+                    blueprint_id=BLUEPRINT.DEPLOYMENT_DELTA,
+                    entity_object=create_deployment_delta_entity(deployment_delta, application),
+                )
+                for deployment_delta in deployment_deltas
+            ])
+
+        await asyncio.gather(*tasks)
+        logger.info(f"Finished syncing entities for blueprint {BLUEPRINT.DEPLOYMENT_DELTA}")
+
     async def sync_all(self) -> None:
         await self.sync_applications()
         await self.sync_environments()
         await self.sync_workloads()
         await self.sync_resource_graphs()
         await self.sync_resources()
+        await self.sync_secret_stores()
+        await self.sync_shared_values()
+        await self.sync_value_set_versions()
+        await self.sync_deployment_sets()
+        await self.sync_pipelines()
+        await self.sync_deployment_deltas()
         logger.info("Event Finished")
 
     async def __call__(self, args) -> None:
