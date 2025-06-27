@@ -184,3 +184,101 @@ class HumanitecClient:
                 grouped_resources[workload_id] = []
             grouped_resources[workload_id].append(resource)
         return grouped_resources
+
+    async def get_secret_stores(self) -> List[Dict[str, Any]]:
+        """Get all secret stores for the organization."""
+        try:
+            endpoint = "secretstores"
+            humanitec_headers = self.get_humanitec_headers()
+            secret_stores: List[Dict[str, Any]] = await self.send_api_request(
+                "GET", endpoint, headers=humanitec_headers
+            )
+            logger.info(f"Received {len(secret_stores)} secret stores from Humanitec")
+            return secret_stores
+        except Exception as e:
+            logger.error(f"Failed to fetch secret stores: {str(e)}")
+            return []
+
+    async def get_shared_values(self, app: Dict[str, Any], env: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Get shared values for a specific environment."""
+        try:
+            endpoint = f"apps/{app['id']}/envs/{env['id']}/values"
+            humanitec_headers = self.get_humanitec_headers()
+            shared_values: List[Dict[str, Any]] = await self.send_api_request(
+                "GET", endpoint, headers=humanitec_headers
+            )
+            logger.info(f"Received {len(shared_values)} shared values for {env['id']} environment in {app['id']}")
+            return shared_values
+        except Exception as e:
+            logger.error(f"Failed to fetch shared values for {env['id']} environment in {app['id']}: {str(e)}")
+            return []
+
+    async def get_shared_values_app_level(self, app: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Get shared values at application level."""
+        try:
+            endpoint = f"apps/{app['id']}/values"
+            humanitec_headers = self.get_humanitec_headers()
+            shared_values: List[Dict[str, Any]] = await self.send_api_request(
+                "GET", endpoint, headers=humanitec_headers
+            )
+            logger.info(f"Received {len(shared_values)} app-level shared values for {app['id']}")
+            return shared_values
+        except Exception as e:
+            logger.error(f"Failed to fetch app-level shared values for {app['id']}: {str(e)}")
+            return []
+
+    async def get_value_set_versions(self, app: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Get value set versions for an application."""
+        try:
+            endpoint = f"apps/{app['id']}/value-set-versions"
+            humanitec_headers = self.get_humanitec_headers()
+            value_set_versions: List[Dict[str, Any]] = await self.send_api_request(
+                "GET", endpoint, headers=humanitec_headers
+            )
+            logger.info(f"Received {len(value_set_versions)} value set versions for {app['id']}")
+            return value_set_versions
+        except Exception as e:
+            logger.error(f"Failed to fetch value set versions for {app['id']}: {str(e)}")
+            return []
+
+    async def get_deployment_sets(self, app: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Get deployment sets for an application."""
+        try:
+            endpoint = f"apps/{app['id']}/sets"
+            humanitec_headers = self.get_humanitec_headers()
+            deployment_sets: List[Dict[str, Any]] = await self.send_api_request(
+                "GET", endpoint, headers=humanitec_headers
+            )
+            logger.info(f"Received {len(deployment_sets)} deployment sets for {app['id']}")
+            return deployment_sets
+        except Exception as e:
+            logger.error(f"Failed to fetch deployment sets for {app['id']}: {str(e)}")
+            return []
+
+    async def get_pipelines(self) -> List[Dict[str, Any]]:
+        """Get all pipelines in the organization."""
+        try:
+            endpoint = "pipelines"
+            humanitec_headers = self.get_humanitec_headers()
+            pipelines: List[Dict[str, Any]] = await self.send_api_request(
+                "GET", endpoint, headers=humanitec_headers
+            )
+            logger.info(f"Received {len(pipelines)} pipelines from Humanitec")
+            return pipelines
+        except Exception as e:
+            logger.error(f"Failed to fetch pipelines: {str(e)}")
+            return []
+
+    async def get_deployment_deltas(self, app: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Get deployment deltas for an application."""
+        try:
+            endpoint = f"apps/{app['id']}/deltas"
+            humanitec_headers = self.get_humanitec_headers()
+            deployment_deltas: List[Dict[str, Any]] = await self.send_api_request(
+                "GET", endpoint, headers=humanitec_headers
+            )
+            logger.info(f"Received {len(deployment_deltas)} deployment deltas for {app['id']}")
+            return deployment_deltas
+        except Exception as e:
+            logger.error(f"Failed to fetch deployment deltas for {app['id']}: {str(e)}")
+            return []
