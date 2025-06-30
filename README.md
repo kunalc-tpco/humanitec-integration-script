@@ -17,6 +17,8 @@ This integration syncs the following Humanitec entities to Port:
 - **Deployment Sets** - Deployment configurations
 - **Pipelines** - CI/CD pipeline definitions
 - **Deployment Deltas** - Deployment change definitions
+- **Users** - Organization users and their roles
+- **Groups** - User groups and permissions
 
 ## Prerequisites
 

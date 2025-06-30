@@ -254,3 +254,18 @@ class HumanitecClient:
         )
         logger.info(f"Received {len(deployment_deltas)} deployment deltas for {app['id']}")
         return deployment_deltas
+
+    async def get_users_and_groups(self) -> tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+        """Get all users and groups in the organization from a single API call."""
+        endpoint = "users"
+        humanitec_headers = self.get_humanitec_headers()
+        all_entities: List[Dict[str, Any]] = await self.send_api_request(
+            "GET", endpoint, headers=humanitec_headers
+        )
+        
+        # Separate users and groups based on type
+        users = [entity for entity in all_entities if entity.get("type") == "user"]
+        groups = [entity for entity in all_entities if entity.get("type") == "group"]
+        
+        logger.info(f"Received {len(users)} users and {len(groups)} groups from Humanitec")
+        return users, groups
