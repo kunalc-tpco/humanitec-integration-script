@@ -263,9 +263,14 @@ class HumanitecClient:
             "GET", endpoint, headers=humanitec_headers
         )
         
-        # Separate users and groups based on type
-        users = [entity for entity in all_entities if entity.get("type") == "user"]
-        groups = [entity for entity in all_entities if entity.get("type") == "group"]
+        # Separate users and groups using a single loop
+        users = []
+        groups = []
+        for entity in all_entities:
+            if entity.get("type") == "user":
+                users.append(entity)
+            elif entity.get("type") == "group":
+                groups.append(entity)
         
         logger.info(f"Received {len(users)} users and {len(groups)} groups from Humanitec")
         return users, groups
