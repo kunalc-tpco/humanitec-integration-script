@@ -273,3 +273,13 @@ class HumanitecClient:
         
         logger.info(f"Received {len(users)} users and {len(groups)} groups from Humanitec")
         return users, groups
+
+    async def get_users_in_group(self, group_id: str) -> List[Dict[str, Any]]:
+        """Get all users in a specific group."""
+        endpoint = f"groups/{group_id}/users"
+        humanitec_headers = self.get_humanitec_headers()
+        users: List[Dict[str, Any]] = await self.send_api_request(
+            "GET", endpoint, headers=humanitec_headers
+        )
+        logger.info(f"Received {len(users)} users in group {group_id}")
+        return users

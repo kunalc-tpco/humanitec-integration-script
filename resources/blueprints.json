@@ -602,7 +602,14 @@
     "mirrorProperties": {},
     "calculationProperties": {},
     "aggregationProperties": {},
-    "relations": {}
+    "relations": {
+      "humanitecGroup": {
+        "title": "Groups",
+        "target": "humanitecGroup",
+        "required": false,
+        "many": true
+      }
+    }
   },
   {
     "identifier": "humanitecGroup",
@@ -618,7 +625,7 @@
         },
         "idp_id": {
           "title": "IDP ID",
-          "description": "The ID of the group in the identity provider",
+          "description": "The identity provider ID",
           "type": "string",
           "icon": "DefaultProperty"
         },

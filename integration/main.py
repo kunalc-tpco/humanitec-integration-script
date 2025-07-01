@@ -561,20 +561,31 @@ class HumanitecExporter:
     async def sync_users_and_groups(self) -> None:
         logger.info(f"Syncing entities for blueprints {BLUEPRINT.USER} and {BLUEPRINT.GROUP}")
         
-        users, groups = await self.humanitec_client.get_users_and_groups()
-
-        def create_user_entity(user):
-            return {
-                "identifier": user["id"],
-                "title": user["name"],
-                "properties": {
-                    "email": user.get("email"),
-                    "role": user.get("role"),
-                    "invite": user.get("invite"),
-                    "createdAt": user.get("created_at"),
-                },
-                "relations": {},
-            }
+        all_users, all_groups = await self.humanitec_client.get_users_and_groups()
+        
+        user_groups = {}
+        
+        for user in all_users:
+            user_groups[user["id"]] = []
+        
+        group_tasks = [
+            self.humanitec_client.get_users_in_group(group["id"])
+            for group in all_groups
+        ]
+        
+        group_results = await asyncio.gather(*group_tasks, return_exceptions=True)
+        
+        for i, result in enumerate(group_results):
+            group_id = all_groups[i]["id"]
+            
+            if isinstance(result, Exception):
+                logger.error(f"Failed to get users for group {group_id}: {str(result)}")
+                continue
+                
+            for user in result:
+                user_id = user["id"]
+                if user_id in user_groups:
+                    user_groups[user_id].append(group_id)
 
         def create_group_entity(group):
             return {
@@ -588,25 +599,39 @@ class HumanitecExporter:
                 "relations": {},
             }
 
-        user_tasks = [
-            self.port_client.upsert_entity(
-                blueprint_id=BLUEPRINT.USER,
-                entity_object=create_user_entity(user),
-            )
-            for user in users
-        ]
+        def create_user_entity(user):
+            return {
+                "identifier": user["id"],
+                "title": user["name"],
+                "properties": {
+                    "email": user.get("email"),
+                    "role": user.get("role"),
+                    "invite": user.get("invite"),
+                    "createdAt": user.get("created_at"),
+                },
+                "relations": {
+                    BLUEPRINT.GROUP: user_groups.get(user["id"], [])
+                },
+            }
 
         group_tasks = [
             self.port_client.upsert_entity(
                 blueprint_id=BLUEPRINT.GROUP,
                 entity_object=create_group_entity(group),
             )
-            for group in groups
+            for group in all_groups
         ]
 
-        await asyncio.gather(*(user_tasks + group_tasks))
-        logger.info(f"Finished syncing {len(users)} users and {len(groups)} groups")
+        user_tasks = [
+            self.port_client.upsert_entity(
+                blueprint_id=BLUEPRINT.USER,
+                entity_object=create_user_entity(user),
+            )
+            for user in all_users
+        ]
 
+        await asyncio.gather(*(group_tasks + user_tasks))
+        logger.info(f"Finished syncing {len(all_groups)} groups and {len(all_users)} users")
 
     async def sync_all(self) -> None:
         await self.sync_applications()
