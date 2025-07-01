@@ -561,7 +561,6 @@ class HumanitecExporter:
     async def sync_users_and_groups(self) -> None:
         logger.info(f"Syncing entities for blueprints {BLUEPRINT.USER} and {BLUEPRINT.GROUP}")
         
-        # Single API call to get all users and groups
         users, groups = await self.humanitec_client.get_users_and_groups()
 
         def create_user_entity(user):
@@ -589,7 +588,6 @@ class HumanitecExporter:
                 "relations": {},
             }
 
-        # Create tasks for both users and groups
         user_tasks = [
             self.port_client.upsert_entity(
                 blueprint_id=BLUEPRINT.USER,
@@ -606,7 +604,6 @@ class HumanitecExporter:
             for group in groups
         ]
 
-        # Execute all tasks together
         await asyncio.gather(*(user_tasks + group_tasks))
         logger.info(f"Finished syncing {len(users)} users and {len(groups)} groups")
 

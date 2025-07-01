@@ -263,7 +263,6 @@ class HumanitecClient:
             "GET", endpoint, headers=humanitec_headers
         )
         
-        # Separate users and groups using a single loop
         users = []
         groups = []
         for entity in all_entities:
