@@ -23,6 +23,8 @@ class BLUEPRINT:
     DEPLOYMENT_SET = "humanitecDeploymentSet"
     PIPELINE = "humanitecPipeline"
     DEPLOYMENT_DELTA = "humanitecDeploymentDelta"
+    USER = "humanitecUser"
+    GROUP = "humanitecGroup"
 
 
 class HumanitecExporter:
@@ -556,6 +558,81 @@ class HumanitecExporter:
         await asyncio.gather(*tasks)
         logger.info(f"Finished syncing entities for blueprint {BLUEPRINT.DEPLOYMENT_DELTA}")
 
+    async def sync_users_and_groups(self) -> None:
+        logger.info(f"Syncing entities for blueprints {BLUEPRINT.USER} and {BLUEPRINT.GROUP}")
+        
+        all_users, all_groups = await self.humanitec_client.get_users_and_groups()
+        
+        user_groups = {}
+        
+        for user in all_users:
+            user_groups[user["id"]] = []
+        
+        group_tasks = [
+            self.humanitec_client.get_users_in_group(group["id"])
+            for group in all_groups
+        ]
+        
+        group_results = await asyncio.gather(*group_tasks, return_exceptions=True)
+        
+        for i, result in enumerate(group_results):
+            group_id = all_groups[i]["id"]
+            
+            if isinstance(result, Exception):
+                logger.error(f"Failed to get users for group {group_id}: {str(result)}")
+                continue
+                
+            for user in result:
+                user_id = user["id"]
+                if user_id in user_groups:
+                    user_groups[user_id].append(group_id)
+
+        def create_group_entity(group):
+            return {
+                "identifier": group["id"],
+                "title": group["name"],
+                "properties": {
+                    "role": group.get("role"),
+                    "idp_id": group.get("idp_id"),
+                    "createdAt": group.get("created_at"),
+                },
+                "relations": {},
+            }
+
+        def create_user_entity(user):
+            return {
+                "identifier": user["id"],
+                "title": user["name"],
+                "properties": {
+                    "email": user.get("email"),
+                    "role": user.get("role"),
+                    "invite": user.get("invite"),
+                    "createdAt": user.get("created_at"),
+                },
+                "relations": {
+                    BLUEPRINT.GROUP: user_groups.get(user["id"], [])
+                },
+            }
+
+        group_tasks = [
+            self.port_client.upsert_entity(
+                blueprint_id=BLUEPRINT.GROUP,
+                entity_object=create_group_entity(group),
+            )
+            for group in all_groups
+        ]
+
+        user_tasks = [
+            self.port_client.upsert_entity(
+                blueprint_id=BLUEPRINT.USER,
+                entity_object=create_user_entity(user),
+            )
+            for user in all_users
+        ]
+
+        await asyncio.gather(*(group_tasks + user_tasks))
+        logger.info(f"Finished syncing {len(all_groups)} groups and {len(all_users)} users")
+
     async def sync_all(self) -> None:
         await self.sync_applications()
         await self.sync_environments()
@@ -568,6 +645,7 @@ class HumanitecExporter:
         await self.sync_deployment_sets()
         await self.sync_pipelines()
         await self.sync_deployment_deltas()
+        await self.sync_users_and_groups()
         logger.info("Event Finished")
 
     async def __call__(self, args) -> None:
