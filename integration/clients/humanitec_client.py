@@ -8,7 +8,6 @@ from .cache import InMemoryCache
 
 
 class CACHE_KEYS:
-    APPLICATION = "APPLICATION_CACHE_KEY"
     ENVIRONMENT = "ENVIRONMENT_CACHE_KEY"
     RESOURCE = "RESOURCE_CACHE_KEY"
 
@@ -16,8 +15,10 @@ class CACHE_KEYS:
 class HumanitecClient:
     def __init__(self, org_id, api_token, **kwargs) -> None:
         self.client = kwargs.get("httpx_async_client", httpx.AsyncClient())
+        # Accept both 'api_url' and 'base_url' for compatibility
+        api_url = kwargs.get('api_url') or kwargs.get('base_url', 'https://api.humanitec.io')
         self.base_url = (
-            f"{kwargs.get('base_url','https://api.humanitec.io')}/orgs/{org_id}/"
+            f"{api_url}/orgs/{org_id}/"
         )
         self.api_token = api_token
         self.cache = InMemoryCache()
@@ -51,24 +52,6 @@ class HumanitecClient:
         except Exception as e:
             logger.error(f"An error occurred: {str(e)}")
             raise
-
-    async def get_all_applications(self) -> List[Dict[str, Any]]:
-        if cached_applications := await self.cache.get(CACHE_KEYS.APPLICATION):
-            logger.info(f"Retrieved {len(cached_applications)} applications from cache")
-            return list(cached_applications.values())
-
-        endpoint = "apps"
-        humanitec_headers = self.get_humanitec_headers()
-        applications: List[Dict[str, Any]] = await self.send_api_request(
-            "GET", endpoint, headers=humanitec_headers
-        )
-
-        await self.cache.set(
-            CACHE_KEYS.APPLICATION, {app["id"]: app for app in applications}
-        )
-        logger.info(f"Received {len(applications)} applications from Humanitec")
-
-        return applications
 
     async def get_all_environments(self, app) -> List[Dict[str, Any]]:
 
@@ -185,16 +168,6 @@ class HumanitecClient:
             grouped_resources[workload_id].append(resource)
         return grouped_resources
 
-    async def get_secret_stores(self) -> List[Dict[str, Any]]:
-        """Get all secret stores for the organization."""
-        endpoint = "secretstores"
-        humanitec_headers = self.get_humanitec_headers()
-        secret_stores: List[Dict[str, Any]] = await self.send_api_request(
-            "GET", endpoint, headers=humanitec_headers
-        )
-        logger.info(f"Received {len(secret_stores)} secret stores from Humanitec")
-        return secret_stores
-
     async def get_shared_values(self, app: Dict[str, Any], env: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Get shared values for a specific environment."""
         endpoint = f"apps/{app['id']}/envs/{env['id']}/values"
@@ -235,16 +208,6 @@ class HumanitecClient:
         logger.info(f"Received {len(deployment_sets)} deployment sets for {app['id']}")
         return deployment_sets
 
-    async def get_pipelines(self) -> List[Dict[str, Any]]:
-        """Get all pipelines in the organization."""
-        endpoint = "pipelines"
-        humanitec_headers = self.get_humanitec_headers()
-        pipelines: List[Dict[str, Any]] = await self.send_api_request(
-            "GET", endpoint, headers=humanitec_headers
-        )
-        logger.info(f"Received {len(pipelines)} pipelines from Humanitec")
-        return pipelines
-
     async def get_deployment_deltas(self, app: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Get deployment deltas for an application."""
         endpoint = f"apps/{app['id']}/deltas"
@@ -255,31 +218,3 @@ class HumanitecClient:
         logger.info(f"Received {len(deployment_deltas)} deployment deltas for {app['id']}")
         return deployment_deltas
 
-    async def get_users_and_groups(self) -> tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
-        """Get all users and groups in the organization from a single API call."""
-        endpoint = "users"
-        humanitec_headers = self.get_humanitec_headers()
-        all_entities: List[Dict[str, Any]] = await self.send_api_request(
-            "GET", endpoint, headers=humanitec_headers
-        )
-        
-        users = []
-        groups = []
-        for entity in all_entities:
-            if entity.get("type") == "user":
-                users.append(entity)
-            elif entity.get("type") == "group":
-                groups.append(entity)
-        
-        logger.info(f"Received {len(users)} users and {len(groups)} groups from Humanitec")
-        return users, groups
-
-    async def get_users_in_group(self, group_id: str) -> List[Dict[str, Any]]:
-        """Get all users in a specific group."""
-        endpoint = f"groups/{group_id}/users"
-        humanitec_headers = self.get_humanitec_headers()
-        users: List[Dict[str, Any]] = await self.send_api_request(
-            "GET", endpoint, headers=humanitec_headers
-        )
-        logger.info(f"Received {len(users)} users in group {group_id}")
-        return users
